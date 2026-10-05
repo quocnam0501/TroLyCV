@@ -140,6 +140,22 @@ export default function Register() {
         throw new Error("Đăng ký không thành công. Không nhận được phản hồi người dùng.");
       }
 
+      // Đồng bộ trực tiếp vào bảng registered_users trên Supabase để hiển thị trên Table Editor
+      try {
+        await supabase.from("registered_users").upsert(
+          [
+            {
+              id: data.user.id,
+              email: email.trim().toLowerCase(),
+              full_name: fullName.trim(),
+            },
+          ],
+          { onConflict: "email" }
+        );
+      } catch (dbErr) {
+        console.warn("Supabase registered_users note:", dbErr);
+      }
+
       // Nếu đã có session ngay (tự động đăng nhập)
       if (data.session) {
         toast({
@@ -216,6 +232,19 @@ export default function Register() {
       if (error) {
         throw error;
       }
+
+      // Đảm bảo thông tin người dùng được lưu trong bảng registered_users trên Supabase
+      try {
+        await supabase.from("registered_users").upsert(
+          [
+            {
+              email: email.trim().toLowerCase(),
+              full_name: fullName.trim(),
+            },
+          ],
+          { onConflict: "email" }
+        );
+      } catch {}
 
       // Gửi email chào mừng kích hoạt tài khoản thành công
       sendWelcomeEmail({

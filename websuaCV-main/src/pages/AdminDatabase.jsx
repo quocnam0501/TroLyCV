@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -95,11 +96,41 @@ export default function AdminDatabase() {
             }
           });
         }
-        setDbSource('Cloud Serverless API & Local Storage');
-      } else {
-        setDbSource('Local Storage');
       }
-    } catch {
+    } catch (apiErr) {
+      console.warn('Lỗi đọc serverless API:', apiErr);
+    }
+
+    // 3. Lấy trực tiếp từ Supabase Cloud Database
+    try {
+      const { data: supaUsers, error: supaErr } = await supabase
+        .from('registered_users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!supaErr && Array.isArray(supaUsers) && supaUsers.length > 0) {
+        supaUsers.forEach((su) => {
+          const existingIdx = allUsers.findIndex(
+            (u) => u.email.toLowerCase() === su.email.toLowerCase()
+          );
+          const formatted = {
+            id: su.id,
+            email: su.email,
+            fullName: su.full_name || su.email.split('@')[0],
+            created_at: su.created_at,
+          };
+          if (existingIdx >= 0) {
+            allUsers[existingIdx] = { ...allUsers[existingIdx], ...formatted };
+          } else {
+            allUsers.push(formatted);
+          }
+        });
+        setDbSource('Supabase Cloud Database (Đang đồng bộ)');
+      } else {
+        setDbSource('Cloud Serverless API & Local Storage');
+      }
+    } catch (e) {
+      console.warn('Lỗi đọc từ Supabase:', e);
       setDbSource('Local Storage (Offline)');
     }
 
