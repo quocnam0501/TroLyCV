@@ -44,9 +44,6 @@ export default function Navbar() {
               <Link to="/cv-versions" className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
                 Phiên bản CV
               </Link>
-              <Link to="/database" className="text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1">
-                <span>🗄️ Database</span>
-              </Link>
             </div>
           </div>
 

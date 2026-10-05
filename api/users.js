@@ -1,5 +1,7 @@
 // Serverless API lưu trữ & quản lý người dùng đăng ký cho TroLyCV
-// Hỗ trợ kiểm tra trùng lặp email và lưu vào Database
+// BẢO MẬT: Chỉ Quản trị viên (nam050105@gmail.com) có mã bí mật mới có thể xem danh sách
+
+const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || 'nam050105';
 
 let globalUsers = [
   {
@@ -16,7 +18,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, X-Admin-Secret'
   );
 
   if (req.method === 'OPTIONS') {
@@ -28,24 +30,36 @@ export default async function handler(req, res) {
   const checkEmail = (searchParams.get('check') || '').trim().toLowerCase();
   const queryEmail = (searchParams.get('email') || '').trim().toLowerCase();
   const isList = searchParams.get('list') === '1';
+  const providedSecret = searchParams.get('secret') || req.headers['x-admin-secret'] || '';
 
-  // 1. Endpoint kiểm tra email đã đăng ký chưa: GET /api/users?check=abc@gmail.com
+  // 1. Endpoint kiểm tra email đã đăng ký chưa (chỉ trả về true/false, không lộ thông tin)
   if (req.method === 'GET' && checkEmail) {
     const found = globalUsers.some((u) => u.email.toLowerCase() === checkEmail);
-    return res.status(200).json({ exists: found, email: checkEmail });
+    return res.status(200).json({ exists: found });
   }
 
-  // 2. Endpoint lấy thông tin tài khoản đăng nhập: GET /api/users?email=abc@gmail.com
+  // 2. Endpoint lấy thông tin tài khoản đăng nhập
   if (req.method === 'GET' && queryEmail) {
     const found = globalUsers.find((u) => u.email.toLowerCase() === queryEmail);
     if (!found) {
       return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
     }
-    return res.status(200).json(found);
+    return res.status(200).json({
+      id: found.id,
+      email: found.email,
+      fullName: found.fullName,
+      created_at: found.created_at,
+    });
   }
 
-  // 3. Endpoint xem danh sách người đăng ký (Dành cho Quản trị viên): GET /api/users?list=1
+  // 3. Endpoint xem danh sách người đăng ký: BẢO MẬT TUYỆT ĐỐI - CHỈ QUẢN TRỊ VIÊN MỚI ĐƯỢC XEM
   if (req.method === 'GET' && isList) {
+    if (providedSecret !== ADMIN_SECRET_KEY) {
+      return res.status(403).json({
+        error: 'Quyền truy cập bị từ chối. Bạn không phải là Quản trị viên.',
+      });
+    }
+
     const safeUsers = globalUsers.map((u) => ({
       id: u.id,
       email: u.email,
@@ -89,11 +103,9 @@ export default async function handler(req, res) {
 
       globalUsers.push(newUser);
 
-      console.log(`[Database] Đã lưu người dùng mới: ${cleanEmail} (${newUser.fullName})`);
-
       return res.status(201).json({
         success: true,
-        message: 'Lưu tài khoản vào cơ sở dữ liệu thành công',
+        message: 'Lưu tài khoản thành công',
         user: {
           id: newUser.id,
           email: newUser.email,
@@ -107,5 +119,5 @@ export default async function handler(req, res) {
     }
   }
 
-  return res.status(200).json({ status: 'ok', totalUsers: globalUsers.length });
+  return res.status(200).json({ status: 'ok' });
 }

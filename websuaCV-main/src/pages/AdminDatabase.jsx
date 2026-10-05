@@ -16,14 +16,50 @@ import {
   Mail, 
   ExternalLink,
   ShieldCheck,
-  Server
+  Server,
+  Lock,
+  KeyRound
 } from 'lucide-react';
 
+const ADMIN_MASTER_PIN = '050105';
+
 export default function AdminDatabase() {
+  const [isUnlocked, setIsUnlocked] = useState(() => {
+    return sessionStorage.getItem('trolycv_admin_unlocked') === 'true';
+  });
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [dbSource, setDbSource] = useState('Đang kết nối...');
+
+  const handleUnlock = (e) => {
+    e.preventDefault();
+    if (pinInput.trim() === ADMIN_MASTER_PIN) {
+      setIsUnlocked(true);
+      sessionStorage.setItem('trolycv_admin_unlocked', 'true');
+      setPinError('');
+      toast({
+        title: 'Xác thực thành công!',
+        description: 'Chào mừng Quản trị viên truy cập cơ sở dữ liệu.',
+      });
+      fetchUsers();
+    } else {
+      setPinError('Mã PIN bảo mật không chính xác. Quyền truy cập bị từ chối!');
+    }
+  };
+
+  const handleLock = () => {
+    setIsUnlocked(false);
+    sessionStorage.removeItem('trolycv_admin_unlocked');
+    setPinInput('');
+    toast({
+      title: 'Đã khóa cơ sở dữ liệu',
+      description: 'Dữ liệu đã được bảo mật an toàn.',
+    });
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -42,13 +78,12 @@ export default function AdminDatabase() {
       console.warn('Lỗi đọc local users:', e);
     }
 
-    // 2. Lấy từ Serverless Database API (/api/users?list=1)
+    // 2. Lấy từ Serverless Database API với khóa bí mật
     try {
-      const res = await fetch('/api/users?list=1');
+      const res = await fetch('/api/users?list=1&secret=nam050105');
       if (res.ok) {
         const data = await res.json();
         if (data?.users && Array.isArray(data.users)) {
-          // Gộp danh sách, loại bỏ trùng lặp email
           data.users.forEach((remoteU) => {
             const existingIdx = allUsers.findIndex(
               (u) => u.email.toLowerCase() === remoteU.email.toLowerCase()
@@ -62,13 +97,12 @@ export default function AdminDatabase() {
         }
         setDbSource('Cloud Serverless API & Local Storage');
       } else {
-        setDbSource('Local Storage (Chưa kết nối Serverless)');
+        setDbSource('Local Storage');
       }
     } catch {
       setDbSource('Local Storage (Offline)');
     }
 
-    // Đảm bảo tài khoản demo luôn có
     const hasDemo = allUsers.some((u) => u.email === 'sinhvien.demo@trolycv.vn');
     if (!hasDemo) {
       allUsers.unshift({
@@ -84,8 +118,10 @@ export default function AdminDatabase() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (isUnlocked) {
+      fetchUsers();
+    }
+  }, [isUnlocked]);
 
   const handleDeleteUser = (emailToDelete) => {
     if (emailToDelete === 'sinhvien.demo@trolycv.vn') {
@@ -147,6 +183,66 @@ export default function AdminDatabase() {
     );
   });
 
+  // MÀN HÌNH KHÓA BẢO MẬT: Nếu người ngoài vào sẽ bị chặn lại
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center px-4">
+        <div className="max-w-md w-full bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl text-center">
+          <div className="w-16 h-16 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl flex items-center justify-center mx-auto mb-6 text-indigo-400">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <h2 className="text-xl font-bold text-white mb-2">
+            Khu Vực Quản Trị Viên (Admin)
+          </h2>
+          <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+            Cơ sở dữ liệu người dùng được bảo mật tuyệt đối. Người dùng thông thường không có quyền xem mục này.
+          </p>
+
+          <form onSubmit={handleUnlock} className="space-y-4">
+            <div className="relative text-left">
+              <KeyRound className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <Input
+                type="password"
+                placeholder="Nhập mã PIN bảo mật của bạn..."
+                value={pinInput}
+                onChange={(e) => {
+                  setPinInput(e.target.value);
+                  if (pinError) setPinError('');
+                }}
+                className="pl-9 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 text-sm h-11"
+                autoFocus
+              />
+            </div>
+
+            {pinError && (
+              <p className="text-xs text-rose-400 text-left font-medium">
+                {pinError}
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold h-11 shadow-lg shadow-indigo-600/20"
+            >
+              Mở khóa xem Database
+            </Button>
+
+            <div className="pt-4 border-t border-slate-700/60">
+              <a
+                href="/"
+                className="text-xs text-slate-400 hover:text-slate-200 transition-colors inline-flex items-center gap-1"
+              >
+                ← Quay lại trang chủ
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // MÀN HÌNH QUẢN TRỊ VIÊN SAU KHI ĐÃ MỞ KHÓA
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
@@ -160,11 +256,14 @@ export default function AdminDatabase() {
                 <Database className="w-6 h-6" />
               </span>
               <h1 className="text-2xl font-bold text-slate-900">
-                Cơ Sở Dữ Liệu Người Dùng
+                Cơ Sở Dữ Liệu Người Dùng (Bảo Mật)
               </h1>
+              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs">
+                Chỉ Admin
+              </Badge>
             </div>
             <p className="text-sm text-slate-500 mt-1">
-              Xem và quản lý tất cả các tài khoản sinh viên đã đăng ký trên hệ thống TroLyCV.
+              Trang quản trị nội bộ dành riêng cho bạn. Người dùng công khai trên web không nhìn thấy trang này.
             </p>
           </div>
 
@@ -186,6 +285,15 @@ export default function AdminDatabase() {
             >
               <Download className="w-4 h-4 mr-2" />
               Tải file Excel / CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLock}
+              className="text-rose-600 border-rose-200 hover:bg-rose-50"
+            >
+              <Lock className="w-4 h-4 mr-1.5" />
+              Khóa lại
             </Button>
           </div>
         </div>
@@ -215,7 +323,7 @@ export default function AdminDatabase() {
               <CardTitle className="text-lg font-bold text-emerald-600 flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Đang hoạt động
+                  Bảo mật riêng tư
                 </span>
                 <Server className="w-5 h-5 text-emerald-400" />
               </CardTitle>
@@ -238,7 +346,7 @@ export default function AdminDatabase() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-slate-500">Nhận thông báo tự động mỗi khi có người đăng ký mới</p>
+              <p className="text-xs text-slate-500">Tự động nhận thư mỗi khi có thành viên mới</p>
             </CardContent>
           </Card>
         </div>
