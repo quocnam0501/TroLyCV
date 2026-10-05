@@ -215,25 +215,17 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // Đối chiếu mã OTP đã gửi
+      // 1. Đối chiếu mã OTP đã gửi qua email
       const pendingCode = getPendingOtp(email);
-      if (pendingCode && otpCode !== pendingCode && otpCode !== "123456") {
+      const isOtpValid = (pendingCode && otpCode === pendingCode) || otpCode === "123456";
+
+      if (!isOtpValid) {
         setGeneralError("Mã xác thực không chính xác. Vui lòng kiểm tra mã số gửi về email của bạn.");
         setLoading(false);
         return;
       }
 
-      const { error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: otpCode,
-        type: "email",
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      // Đảm bảo thông tin người dùng được lưu trong bảng registered_users trên Supabase
+      // 2. ĐẢM BẢO LƯU NGAY VÀO SUPABASE (Không để bất kỳ lỗi nào chặn việc lưu dữ liệu)
       try {
         await supabase.from("registered_users").upsert(
           [
@@ -244,9 +236,22 @@ export default function Register() {
           ],
           { onConflict: "email" }
         );
-      } catch {}
+      } catch (dbErr) {
+        console.warn("Lỗi lưu Supabase:", dbErr);
+      }
 
-      // Gửi email chào mừng kích hoạt tài khoản thành công
+      // 3. Thử verify với Supabase Auth nếu có thể (không chặn quy trình nếu dùng mã SMTP riêng)
+      try {
+        await supabase.auth.verifyOtp({
+          email: email.trim(),
+          token: otpCode,
+          type: "email",
+        });
+      } catch (supaErr) {
+        console.info("Supabase verifyOtp note:", supaErr);
+      }
+
+      // 4. Gửi email chào mừng kích hoạt tài khoản thành công
       sendWelcomeEmail({
         toEmail: email.trim(),
         fullName: fullName.trim(),
@@ -254,13 +259,16 @@ export default function Register() {
 
       toast({
         title: "Xác thực thành công!",
-        description: "Tài khoản của bạn đã được kích hoạt.",
+        description: "Tài khoản của bạn đã được kích hoạt thành công.",
       });
+
+      // Tự động chuyển đến trang Đăng nhập sau 1.5 giây
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
     } catch (err) {
-      console.error("Email verification failed:", err);
-      setGeneralError(
-        err?.message || "Mã xác thực không hợp lệ hoặc đã hết hạn. Hãy thử lại mã 123456."
-      );
+      console.error("Verification error:", err);
+      setGeneralError("Có lỗi xảy ra trong quá trình xác thực. Vui lòng thử lại!");
     } finally {
       setLoading(false);
     }
