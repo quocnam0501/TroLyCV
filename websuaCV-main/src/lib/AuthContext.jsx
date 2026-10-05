@@ -342,6 +342,7 @@ export const AuthProvider = ({ children }) => {
         user,
         isAuthenticated,
         isLoadingAuth,
+        authChecked: !isLoadingAuth,
         authError,
         loginViaEmailPassword,
         register,

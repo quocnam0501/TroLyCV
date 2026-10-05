@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Building2, Briefcase, ArrowRight, Clock, Wifi, Home, Users } from 'lucide-react';
 import { WORK_ARRANGEMENT_LABELS, EXPERIENCE_LEVEL_LABELS, formatPostedDate } from '@/utils/seedJobs';
+import { useAuth } from '@/lib/AuthContext';
 
 const WORK_ARRANGEMENT_ICONS = {
   onsite: Home,
@@ -17,10 +18,17 @@ const WORK_ARRANGEMENT_COLORS = {
 
 export default function JobCard({ job }) {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const arrangement = job.work_arrangement || (job.remote ? 'remote' : 'onsite');
   const ArrangementIcon = WORK_ARRANGEMENT_ICONS[arrangement] || Home;
 
-  const handleCardClick = () => navigate(`/jobs/${job.id}`);
+  const handleCardClick = () => {
+    if (!isAuthenticated) {
+      navigate(`/login?returnTo=${encodeURIComponent(`/jobs/${job.id}`)}`);
+      return;
+    }
+    navigate(`/jobs/${job.id}`);
+  };
 
   return (
     <div

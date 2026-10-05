@@ -11,6 +11,7 @@ import {
 import PageNotFound from "./lib/PageNotFound";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import ScrollToTop from "./components/ScrollToTop";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -42,6 +43,7 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
+      {/* Public routes */}
       <Route
         path="/login"
         element={<Login />}
@@ -67,60 +69,63 @@ const AuthenticatedApp = () => {
         element={<Home />}
       />
 
-      <Route
-        path="/profile"
-        element={<Profile />}
-      />
+      {/* Feature routes - Tất cả tính năng yêu cầu đăng nhập */}
+      <Route element={<ProtectedRoute />}>
+        <Route
+          path="/profile"
+          element={<Profile />}
+        />
 
-      <Route
-        path="/dashboard"
-        element={<Dashboard />}
-      />
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
 
-      <Route
-        path="/jobs"
-        element={<Jobs />}
-      />
+        <Route
+          path="/jobs"
+          element={<Jobs />}
+        />
 
-      <Route
-        path="/jobs/:id"
-        element={<JobDetail />}
-      />
+        <Route
+          path="/jobs/:id"
+          element={<JobDetail />}
+        />
 
-      <Route
-        path="/cv-start"
-        element={<CVStart />}
-      />
+        <Route
+          path="/cv-start"
+          element={<CVStart />}
+        />
 
-      <Route
-        path="/cv-builder"
-        element={<CVBuilder />}
-      />
+        <Route
+          path="/cv-builder"
+          element={<CVBuilder />}
+        />
 
-      <Route
-        path="/match-analysis"
-        element={<MatchAnalysis />}
-      />
+        <Route
+          path="/match-analysis"
+          element={<MatchAnalysis />}
+        />
 
-      <Route
-        path="/match"
-        element={<MatchAnalysis />}
-      />
+        <Route
+          path="/match"
+          element={<MatchAnalysis />}
+        />
 
-      <Route
-        path="/cv-versions"
-        element={<CVVersions />}
-      />
+        <Route
+          path="/cv-versions"
+          element={<CVVersions />}
+        />
 
-      <Route
-        path="/admin"
-        element={<AdminDatabase />}
-      />
+        <Route
+          path="/admin"
+          element={<AdminDatabase />}
+        />
 
-      <Route
-        path="/database"
-        element={<AdminDatabase />}
-      />
+        <Route
+          path="/database"
+          element={<AdminDatabase />}
+        />
+      </Route>
 
       <Route
         path="*"

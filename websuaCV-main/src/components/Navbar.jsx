@@ -14,6 +14,11 @@ export default function Navbar() {
     navigate('/');
   };
 
+  const getNavPath = (path) => {
+    if (isAuthenticated) return path;
+    return `/login?returnTo=${encodeURIComponent(path)}`;
+  };
+
   return (
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,22 +33,22 @@ export default function Navbar() {
             </Link>
 
             <div className="hidden md:flex md:items-center md:space-x-1">
-              <Link to="/dashboard" className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+              <Link to={getNavPath('/dashboard')} className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
                 Bảng điều khiển
               </Link>
-              <Link to="/profile" className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+              <Link to={getNavPath('/profile')} className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
                 Hồ sơ
               </Link>
-              <Link to="/cv-builder" className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+              <Link to={getNavPath('/cv-builder')} className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
                 Tạo CV
               </Link>
-              <Link to="/jobs" className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+              <Link to={getNavPath('/jobs')} className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
                 Việc làm
               </Link>
-              <Link to="/match-analysis" className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+              <Link to={getNavPath('/match-analysis')} className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
                 Đối chiếu CV
               </Link>
-              <Link to="/cv-versions" className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+              <Link to={getNavPath('/cv-versions')} className="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
                 Phiên bản CV
               </Link>
             </div>
