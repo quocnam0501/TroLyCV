@@ -25,6 +25,7 @@ import CVBuilder from "./pages/CVBuilder";
 import CVStart from "./pages/CVStart";
 import MatchAnalysis from "./pages/MatchAnalysis";
 import CVVersions from "./pages/CVVersions";
+import AdminDatabase from "./pages/AdminDatabase";
 
 const AuthenticatedApp = () => {
   const {
@@ -109,6 +110,16 @@ const AuthenticatedApp = () => {
       <Route
         path="/cv-versions"
         element={<CVVersions />}
+      />
+
+      <Route
+        path="/admin"
+        element={<AdminDatabase />}
+      />
+
+      <Route
+        path="/database"
+        element={<AdminDatabase />}
       />
 
       <Route
