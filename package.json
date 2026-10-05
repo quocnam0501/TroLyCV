@@ -10,5 +10,8 @@
     "preview": "npm --prefix websuaCV-main run preview",
     "lint": "npm --prefix websuaCV-main run lint",
     "lint:fix": "npm --prefix websuaCV-main run lint:fix"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.16"
   }
 }
