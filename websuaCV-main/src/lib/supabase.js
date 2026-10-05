@@ -129,24 +129,41 @@ function createInteractiveMockClient() {
           return { data: { user, session }, error: null };
         }
 
-        // Nếu chưa đăng ký mà vẫn muốn đăng nhập nhanh
-        const newUser = {
-          id: `user_${Date.now()}`,
-          email: cleanEmail,
-          user_metadata: { full_name: cleanEmail.split("@")[0] },
-          created_at: new Date().toISOString(),
-        };
-        saveMockUser({
-          id: newUser.id,
-          email: cleanEmail,
-          password: password || "123456",
-          fullName: cleanEmail.split("@")[0],
-          created_at: newUser.created_at,
-        });
-        setStoredDemoUser(newUser);
-        const session = { user: newUser, access_token: "mock_token_" + newUser.id };
-        notify("SIGNED_IN", session);
-        return { data: { user: newUser, session }, error: null };
+        // Nếu chưa tìm thấy trong máy, thử tra cứu trên database máy chủ (khi đăng ký từ thiết bị khác)
+        if (!found) {
+          try {
+            const remoteRes = await fetch(`/api/users?email=${encodeURIComponent(cleanEmail)}`);
+            if (remoteRes.ok) {
+              const remoteUser = await remoteRes.json();
+              if (remoteUser && remoteUser.email) {
+                saveMockUser(remoteUser);
+                if (password && remoteUser.password && remoteUser.password !== password) {
+                  return {
+                    data: { user: null, session: null },
+                    error: { message: "Mật khẩu không chính xác. Vui lòng thử lại!" },
+                  };
+                }
+                const user = {
+                  id: remoteUser.id,
+                  email: remoteUser.email,
+                  user_metadata: { full_name: remoteUser.fullName || remoteUser.email.split("@")[0] },
+                  created_at: remoteUser.created_at || new Date().toISOString(),
+                };
+                setStoredDemoUser(user);
+                const session = { user, access_token: "mock_token_" + remoteUser.id };
+                notify("SIGNED_IN", session);
+                return { data: { user, session }, error: null };
+              }
+            }
+          } catch {
+            // bỏ qua lỗi mạng
+          }
+
+          return {
+            data: { user: null, session: null },
+            error: { message: "Tài khoản không tồn tại. Vui lòng kiểm tra lại email hoặc bấm Đăng ký mới!" },
+          };
+        }
       },
       signUp: async ({ email, password, options }) => {
         const cleanEmail = (email || "").trim().toLowerCase();
@@ -154,6 +171,32 @@ function createInteractiveMockClient() {
           options?.data?.full_name ||
           options?.data?.fullName ||
           cleanEmail.split("@")[0];
+
+        // 1. Kiểm tra tài khoản đã tồn tại trong danh sách máy
+        const users = getMockUsers();
+        const existing = users.find((u) => u.email.toLowerCase() === cleanEmail);
+        if (existing) {
+          return {
+            data: { user: null, session: null },
+            error: { message: "Email này đã được đăng ký. Vui lòng đăng nhập hoặc sử dụng email khác!" },
+          };
+        }
+
+        // 2. Kiểm tra tài khoản đã tồn tại trên Database máy chủ
+        try {
+          const checkRes = await fetch(`/api/users?check=${encodeURIComponent(cleanEmail)}`);
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            if (checkData?.exists) {
+              return {
+                data: { user: null, session: null },
+                error: { message: "Email này đã được đăng ký. Vui lòng đăng nhập hoặc sử dụng email khác!" },
+              };
+            }
+          }
+        } catch {
+          // tiếp tục nếu offline
+        }
 
         const newUser = {
           id: `user_${Date.now()}`,
@@ -163,8 +206,17 @@ function createInteractiveMockClient() {
           created_at: new Date().toISOString(),
         };
 
-        // Lưu tạm vào danh sách đăng ký
+        // Lưu vào danh sách tài khoản máy
         saveMockUser(newUser);
+
+        // Lưu vào Database máy chủ (API /api/users)
+        try {
+          fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newUser),
+          }).catch((err) => console.warn('Không thể đồng bộ user lên server:', err));
+        } catch {}
 
         const userPayload = {
           id: newUser.id,
@@ -174,7 +226,7 @@ function createInteractiveMockClient() {
         };
 
         console.info(
-          `%c[Đăng ký Mock]%c Tạo tài khoản thành công cho ${cleanEmail}. Mã OTP xác thực là: 123456`,
+          `%c[Đăng ký Thành Công]%c Tạo tài khoản và lưu vào database cho ${cleanEmail}.`,
           "color: #10b981; font-weight: bold;",
           "color: inherit;"
         );
