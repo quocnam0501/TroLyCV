@@ -19,7 +19,9 @@ import {
   ShieldCheck,
   Server,
   Lock,
-  KeyRound
+  KeyRound,
+  CloudUpload,
+  UserPlus
 } from 'lucide-react';
 
 const ADMIN_MASTER_PIN = '050105';
@@ -34,6 +36,10 @@ export default function AdminDatabase() {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [quickEmail, setQuickEmail] = useState('');
+  const [quickName, setQuickName] = useState('');
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [dbSource, setDbSource] = useState('Đang kết nối...');
 
   const handleUnlock = (e) => {
@@ -206,6 +212,92 @@ export default function AdminDatabase() {
     });
   };
 
+  const handleSyncToSupabase = async () => {
+    if (users.length === 0) {
+      toast({ title: 'Không có dữ liệu', description: 'Chưa có người dùng để đồng bộ.' });
+      return;
+    }
+
+    setSyncing(true);
+    let successCount = 0;
+    try {
+      for (const u of users) {
+        if (!u.email) continue;
+        const { error } = await supabase.from('registered_users').upsert(
+          [
+            {
+              email: u.email.trim().toLowerCase(),
+              full_name: u.fullName || u.email.split('@')[0],
+              created_at: u.created_at || new Date().toISOString(),
+            },
+          ],
+          { onConflict: 'email' }
+        );
+        if (!error) successCount++;
+      }
+
+      toast({
+        title: 'Đồng bộ Supabase thành công!',
+        description: `Đã nạp ${successCount}/${users.length} tài khoản lên bảng registered_users trên Supabase.`,
+      });
+      fetchUsers();
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Lỗi đồng bộ Supabase',
+        description: err.message || 'Không thể đồng bộ sang Supabase.',
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleQuickAddUser = async (e) => {
+    e.preventDefault();
+    if (!quickEmail.trim()) {
+      toast({ variant: 'destructive', title: 'Thiếu email', description: 'Vui lòng nhập địa chỉ email.' });
+      return;
+    }
+
+    const emailList = quickEmail
+      .split(/[\n,;]+/)
+      .map((em) => em.trim())
+      .filter((em) => em.includes('@'));
+
+    if (emailList.length === 0) {
+      toast({ variant: 'destructive', title: 'Email không hợp lệ', description: 'Không tìm thấy địa chỉ email hợp lệ.' });
+      return;
+    }
+
+    setSyncing(true);
+    let added = 0;
+    for (const em of emailList) {
+      try {
+        const { error } = await supabase.from('registered_users').upsert(
+          [
+            {
+              email: em.toLowerCase(),
+              full_name: quickName.trim() || em.split('@')[0],
+              created_at: new Date().toISOString(),
+            },
+          ],
+          { onConflict: 'email' }
+        );
+        if (!error) added++;
+      } catch {}
+    }
+
+    setSyncing(false);
+    setQuickEmail('');
+    setQuickName('');
+    setShowQuickAdd(false);
+    toast({
+      title: 'Đã thêm thành công!',
+      description: `Đã nạp ${added} tài khoản trực tiếp vào Supabase.`,
+    });
+    fetchUsers();
+  };
+
   const filteredUsers = users.filter((u) => {
     const q = searchTerm.toLowerCase();
     return (
@@ -298,7 +390,26 @@ export default function AdminDatabase() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncToSupabase}
+              disabled={syncing}
+              className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 bg-white"
+            >
+              <CloudUpload className={`w-4 h-4 mr-1.5 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Đang đồng bộ...' : 'Đẩy tất cả lên Supabase'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowQuickAdd(!showQuickAdd)}
+              className="border-indigo-300 text-indigo-700 hover:bg-indigo-50 bg-white"
+            >
+              <UserPlus className="w-4 h-4 mr-1.5" />
+              Nạp người dùng
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -306,7 +417,7 @@ export default function AdminDatabase() {
               disabled={loading}
               className="bg-white"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
               Làm mới
             </Button>
             <Button
@@ -314,8 +425,8 @@ export default function AdminDatabase() {
               onClick={handleExportCSV}
               className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
-              <Download className="w-4 h-4 mr-2" />
-              Tải file Excel / CSV
+              <Download className="w-4 h-4 mr-1.5" />
+              Xuất Excel
             </Button>
             <Button
               variant="outline"
@@ -328,6 +439,57 @@ export default function AdminDatabase() {
             </Button>
           </div>
         </div>
+
+        {showQuickAdd && (
+          <Card className="bg-indigo-50/70 border-indigo-200 shadow-sm mb-8 p-5">
+            <CardHeader className="p-0 pb-3">
+              <CardTitle className="text-sm font-bold text-indigo-900 flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-indigo-600" />
+                Nạp người dùng vào Supabase (dành cho người đăng ký trước đây)
+              </CardTitle>
+              <CardDescription className="text-xs text-indigo-600">
+                Nhập email của người đã đăng ký để hệ thống lưu trực tiếp vào cơ sở dữ liệu Supabase của bạn.
+              </CardDescription>
+            </CardHeader>
+            <form onSubmit={handleQuickAddUser} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input
+                  type="text"
+                  placeholder="Họ và tên (tùy chọn)..."
+                  value={quickName}
+                  onChange={(e) => setQuickName(e.target.value)}
+                  className="bg-white border-indigo-200 text-sm h-10"
+                />
+                <Input
+                  type="text"
+                  placeholder="Nhập email (có thể nhập nhiều email cách nhau bằng dấu phẩy)..."
+                  value={quickEmail}
+                  onChange={(e) => setQuickEmail(e.target.value)}
+                  className="bg-white border-indigo-200 text-sm h-10"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowQuickAdd(false)}
+                >
+                  Đóng
+                </Button>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={syncing}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  <CloudUpload className="w-4 h-4 mr-1.5" />
+                  Lưu vào Supabase
+                </Button>
+              </div>
+            </form>
+          </Card>
+        )}
 
         {/* Thẻ thống kê */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
