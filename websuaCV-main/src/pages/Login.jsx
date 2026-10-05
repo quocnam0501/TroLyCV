@@ -72,6 +72,7 @@ export default function Login() {
 
     try {
       await loginViaEmailPassword(email.trim(), password);
+      navigate(returnTo || "/", { replace: true });
     } catch (err) {
       console.error("Login failed:", err);
       setGeneralError(
@@ -115,7 +116,7 @@ export default function Login() {
             setGeneralError("");
             try {
               await loginViaEmailPassword("sinhvien.demo@trolycv.vn", "123456");
-            } catch (err) {
+            } catch {
               setGeneralError("Đăng nhập demo thất bại.");
             } finally {
               setLoading(false);

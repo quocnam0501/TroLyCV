@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
-import { supabase, saveMockUser } from "@/lib/supabase";
+import { supabase, saveMockUser, setStoredDemoUser } from "@/lib/supabase";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,6 @@ import {
   sendWelcomeEmail,
   generateOtpCode,
   getPendingOtp,
-  checkSmtpStatus,
 } from "@/utils/emailService";
 
 // Helper kiểm tra email hợp lệ
@@ -70,7 +69,6 @@ export default function Register() {
 
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
-  const [smtpInfo, setSmtpInfo] = useState({ configured: false });
   const [sendResult, setSendResult] = useState(null);
 
   const returnTo = safeReturnTo();
@@ -81,12 +79,6 @@ export default function Register() {
       navigate(returnTo, { replace: true });
     }
   }, [isAuthenticated, isLoadingAuth, navigate, returnTo]);
-
-  useEffect(() => {
-    checkSmtpStatus().then((status) => {
-      if (status) setSmtpInfo(status);
-    });
-  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -269,9 +261,26 @@ export default function Register() {
         console.info("Supabase verifyOtp note:", supaErr);
       }
 
-      // 4. Gửi email chào mừng kích hoạt tài khoản thành công
+      // 4. Lưu thông tin người dùng đã kích hoạt
+      const cleanEmail = email.trim().toLowerCase();
+      const verifiedUser = {
+        id: `user_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}`,
+        email: cleanEmail,
+        password: password,
+        fullName: fullName.trim(),
+        email_confirmed: true,
+      };
+      saveMockUser(verifiedUser);
+      setStoredDemoUser({
+        id: verifiedUser.id,
+        email: cleanEmail,
+        user_metadata: { full_name: fullName.trim() },
+        created_at: new Date().toISOString(),
+      });
+
+      // 5. Gửi email chào mừng kích hoạt tài khoản thành công
       sendWelcomeEmail({
-        toEmail: email.trim(),
+        toEmail: cleanEmail,
         fullName: fullName.trim(),
       }).catch((e) => console.warn("Welcome email error:", e));
 
@@ -280,10 +289,9 @@ export default function Register() {
         description: "Tài khoản của bạn đã được kích hoạt thành công.",
       });
 
-      // Tự động chuyển đến trang Đăng nhập sau 1.5 giây
       setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+        navigate(returnTo || "/");
+      }, 1000);
     } catch (err) {
       console.error("Verification error:", err);
       setGeneralError("Có lỗi xảy ra trong quá trình xác thực. Vui lòng thử lại!");
@@ -326,9 +334,6 @@ export default function Register() {
   };
 
   if (showOtp) {
-    const isReal = sendResult?.method === "smtp" || (smtpInfo?.configured && !sendResult);
-    const isError = sendResult?.method === "smtp_error";
-
     return (
       <AuthLayout
         icon={Mail}

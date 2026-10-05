@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { supabase, saveMockUser } from "@/lib/supabase";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,18 +90,27 @@ export default function ResetPassword() {
         });
       } catch {}
 
-      // 3. Cập nhật trong Local Storage nếu có lưu trên trình duyệt
+      // 3. Cập nhật trong Local Storage bằng saveMockUser
       try {
-        const raw = localStorage.getItem("trolycv_mock_registered_users");
-        if (raw) {
-          const list = JSON.parse(raw);
-          const idx = list.findIndex((u) => u.email.toLowerCase() === cleanEmail);
-          if (idx >= 0) {
-            list[idx].password = newPassword;
-            localStorage.setItem("trolycv_mock_registered_users", JSON.stringify(list));
-          }
-        }
-      } catch {}
+        let fullName = cleanEmail.split("@")[0];
+        try {
+          const { data: regData } = await supabase
+            .from("registered_users")
+            .select("full_name")
+            .eq("email", cleanEmail)
+            .maybeSingle();
+          if (regData?.full_name) fullName = regData.full_name;
+        } catch {}
+
+        saveMockUser({
+          id: `user_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}`,
+          email: cleanEmail,
+          password: newPassword,
+          fullName: fullName,
+        });
+      } catch (saveErr) {
+        console.warn("Save mock user error:", saveErr);
+      }
 
       setSuccess(true);
       toast({
