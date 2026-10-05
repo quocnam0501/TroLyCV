@@ -14,7 +14,6 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [resetCode, setResetCode] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,14 +21,14 @@ export default function ForgotPassword() {
 
     setLoading(true);
     const code = generateOtpCode();
-    setResetCode(code);
 
     const origin = window.location.origin;
-    const resetLink = `${origin}/reset-password?email=${encodeURIComponent(email.trim())}&code=${code}`;
+    // Link trong email dẫn đến trang đổi mật khẩu (không truyền mã code vào URL để người dùng tự nhập)
+    const resetLink = `${origin}/reset-password?email=${encodeURIComponent(email.trim())}`;
 
     try {
       // 1. Gửi email thật chứa mã xác nhận 6 số qua SMTP
-      const res = await sendResetPasswordEmail({
+      await sendResetPasswordEmail({
         toEmail: email.trim(),
         otpCode: code,
         resetLink,
@@ -42,17 +41,10 @@ export default function ForgotPassword() {
         });
       } catch {}
 
-      if (res?.method === 'smtp') {
-        toast({
-          title: "Đã gửi email thành công!",
-          description: `Mã xác nhận 6 chữ số đã được gửi tới ${email}. Vui lòng kiểm tra hộp thư!`,
-        });
-      } else {
-        toast({
-          title: "Đã tạo mã xác nhận",
-          description: `Mã xác nhận của bạn là: ${code}`,
-        });
-      }
+      toast({
+        title: "Đã gửi email thành công!",
+        description: `Mã xác nhận 6 chữ số đã được gửi tới ${email}. Vui lòng kiểm tra hộp thư!`,
+      });
 
       setSent(true);
     } catch (err) {
@@ -100,7 +92,7 @@ export default function ForgotPassword() {
 
           <Button
             type="button"
-            onClick={() => navigate(`/reset-password?email=${encodeURIComponent(email)}&code=${resetCode}`)}
+            onClick={() => navigate(`/reset-password?email=${encodeURIComponent(email.trim())}`)}
             className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md shadow-indigo-600/20"
           >
             Nhập mã đặt lại mật khẩu ngay <ArrowRight className="w-4 h-4 ml-1.5" />

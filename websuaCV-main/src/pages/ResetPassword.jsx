@@ -15,10 +15,9 @@ export default function ResetPassword() {
   const [searchParams] = useSearchParams();
 
   const urlEmail = (searchParams.get("email") || "").trim();
-  const urlCode = (searchParams.get("code") || "").trim();
 
   const [email, setEmail] = useState(urlEmail);
-  const [otpCode, setOtpCode] = useState(urlCode);
+  const [otpCode, setOtpCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,8 +26,7 @@ export default function ResetPassword() {
 
   useEffect(() => {
     if (urlEmail && !email) setEmail(urlEmail);
-    if (urlCode && !otpCode) setOtpCode(urlCode);
-  }, [urlEmail, urlCode]);
+  }, [urlEmail, email]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -195,8 +193,10 @@ export default function ResetPassword() {
             <Input
               id="otp"
               type="text"
+              inputMode="numeric"
+              autoComplete="off"
               maxLength={6}
-              placeholder="Ví dụ: 123456"
+              placeholder="Nhập mã 6 chữ số từ email"
               value={otpCode}
               onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
               className="pl-9 h-10 text-sm font-mono tracking-widest text-indigo-700 font-bold"
