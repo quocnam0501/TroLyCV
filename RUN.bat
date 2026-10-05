@@ -1,0 +1,4 @@
+@echo off
+cd /d "%~dp0"
+call CHAY_NGAY.bat
+

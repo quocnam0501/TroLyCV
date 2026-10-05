@@ -1,0 +1,103 @@
+{
+  "name": "Job",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Job title"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company name"
+    },
+    "location": {
+      "type": "string",
+      "description": "Job location"
+    },
+    "job_type": {
+      "type": "string",
+      "enum": [
+        "Internship",
+        "Full-time",
+        "Part-time"
+      ],
+      "default": "Internship"
+    },
+    "work_arrangement": {
+      "type": "string",
+      "enum": [
+        "onsite",
+        "hybrid",
+        "remote"
+      ],
+      "default": "onsite",
+      "description": "Work arrangement: onsite, hybrid, or remote"
+    },
+    "experience_level": {
+      "type": "string",
+      "enum": [
+        "Intern",
+        "Entry",
+        "Junior",
+        "Mid",
+        "Senior"
+      ],
+      "default": "Intern",
+      "description": "Experience level required"
+    },
+    "field": {
+      "type": "string",
+      "description": "Job field or category"
+    },
+    "description": {
+      "type": "string",
+      "description": "Full job description"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Job requirements"
+    },
+    "preferred_skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Preferred skills"
+    },
+    "application_url": {
+      "type": "string",
+      "description": "External application URL"
+    },
+    "external_url": {
+      "type": "string",
+      "description": "URL of the original external job posting"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source of the job data (seed, linkedin, topcv, etc.)",
+      "default": "seed"
+    },
+    "source_job_id": {
+      "type": "string",
+      "description": "Original job ID from the external source"
+    },
+    "posted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the job was posted"
+    },
+    "remote": {
+      "type": "boolean",
+      "default": false,
+      "description": "Remote work option (legacy \u2014 derived from work_arrangement)"
+    }
+  },
+  "required": [
+    "title",
+    "company",
+    "description"
+  ]
+}
