@@ -280,37 +280,22 @@ export default function Register() {
         title="Xác thực Email của bạn"
         subtitle={`Hệ thống đã gửi yêu cầu xác thực tới ${email}.`}
       >
-        {isReal ? (
-          <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs leading-relaxed text-center shadow-sm">
-            📬 <strong>Đã gửi email thật!</strong> Hãy mở hộp thư <strong>{email}</strong> (kiểm tra cả mục Hòm thư Rác / Spam) để lấy mã xác thực 6 chữ số.
-          </div>
-        ) : isError ? (
-          <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs text-left leading-relaxed shadow-sm">
-            <div className="font-bold text-amber-800 mb-1">⚠️ Chưa gửi được qua SMTP:</div>
-            <p className="text-[11px] text-amber-700 mb-2">{sendResult?.message}</p>
-            <div className="text-center pt-1 border-t border-amber-200">
-              💡 Bạn có thể dùng mã tạm:{" "}
-              <button
-                type="button"
-                onClick={() => setOtpCode(getPendingOtp(email) || "123456")}
-                className="font-bold underline text-amber-950 inline px-1 bg-white rounded border border-amber-300"
-              >
-                Điền {getPendingOtp(email) || "123456"}
-              </button>{" "}
-              để hoàn tất.
-            </div>
-          </div>
-        ) : (
-          <div className="mb-4 p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs text-center leading-relaxed">
-            💡 <strong>Chế độ Thử Nghiệm Thông Minh:</strong> Nhập mã xác thực của bạn hoặc bấm{" "}
+        <div className="mb-4 p-3.5 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs leading-relaxed text-center shadow-sm">
+          📬 Mã xác thực 6 chữ số đã được gửi tới <strong>{email}</strong>.<br />
+          Vui lòng kiểm tra hộp thư đến (bao gồm cả mục Thư rác / Spam) để lấy mã kích hoạt.
+        </div>
+
+        {sendResult?.method === 'simulation' && (
+          <div className="mb-3 text-[11px] text-center text-muted-foreground">
+            (Chế độ thử nghiệm: mã xác thực là{" "}
             <button
               type="button"
               onClick={() => setOtpCode(getPendingOtp(email) || "123456")}
-              className="font-bold underline text-indigo-900 hover:text-black inline px-1 bg-white rounded border border-indigo-300"
+              className="font-bold underline text-indigo-600 hover:text-indigo-800"
             >
-              Điền nhanh {getPendingOtp(email) || "123456"}
-            </button>{" "}
-            để kích hoạt tài khoản ngay.
+              {getPendingOtp(email) || "123456"}
+            </button>
+            )
           </div>
         )}
 
@@ -409,28 +394,6 @@ export default function Register() {
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{generalError}</span>
-        </div>
-      )}
-
-      {/* Thông tin trạng thái gửi email từ file .env / .evn */}
-      {smtpInfo?.configured ? (
-        <div className="mb-4 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 shadow-sm">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-          <div>
-            <strong>Gửi email thật qua SMTP:</strong> Đã kết nối hộp thư{" "}
-            <span className="font-mono font-medium">{smtpInfo.userMasked || 'Gmail'}</span>{" "}
-            (cấu hình từ file .env)
-          </div>
-        </div>
-      ) : (
-        <div className="mb-4 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-xs flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-400">✉️</span>
-            <span>Gửi mã xác thực về email thật: Điền tài khoản vào file <code>.env</code> (hoặc <code>.evn</code>)</span>
-          </div>
-          <span className="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-medium shrink-0 ml-2">
-            Thử nghiệm
-          </span>
         </div>
       )}
 
