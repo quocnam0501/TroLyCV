@@ -356,6 +356,10 @@ export function profileToText(p) {
 }
 
 export function getCVText() {
+  const masterCV = getMasterCV();
+  if (masterCV?.type === 'uploaded' && masterCV?.content && masterCV.content.trim().length > 20) {
+    return masterCV.content;
+  }
   const p = getProfile();
   return profileToText(p);
 }

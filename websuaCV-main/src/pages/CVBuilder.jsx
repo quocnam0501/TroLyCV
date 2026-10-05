@@ -6,10 +6,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { FileText, Upload, Save, Loader2, Check, Eye, Download, LayoutTemplate } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import CVPreview from '@/components/cv/CVPreview';
-import { getProfile, getMasterCV, saveMasterCV, saveProfile } from '@/utils/cvStorage';
+import { getProfile, getMasterCV, saveMasterCV } from '@/utils/cvStorage';
 import { exportCVToPDF } from '@/utils/cvExport';
 import { extractTextFromFile } from '@/utils/fileExtract';
-import { parseCVTextToProfile } from '@/utils/cvParser';
 import { toast } from '@/components/ui/use-toast';
 
 const TEMPLATES = [
@@ -147,38 +146,12 @@ export default function CVBuilder() {
         });
       }
 
-      // Tự động phân tích và đồng bộ sang Hồ sơ (Profile) để các mẫu CV hiển thị đúng thông tin mới
-      const parsedProfile = parseCVTextToProfile(extracted, file.name);
-      if (parsedProfile) {
-        const currentProfile = getProfile() || {};
-        const mergedProfile = {
-          ...currentProfile,
-          ...parsedProfile,
-          personal: {
-            ...(currentProfile.personal || {}),
-            ...(parsedProfile.personal || {}),
-            photoUrl: currentProfile.personal?.photoUrl || parsedProfile.personal?.photoUrl || '',
-          },
-          skills: {
-            technical: parsedProfile.skills?.technical?.length > 0 ? parsedProfile.skills.technical : (currentProfile.skills?.technical || []),
-            soft: parsedProfile.skills?.soft?.length > 0 ? parsedProfile.skills.soft : (currentProfile.skills?.soft || []),
-          },
-          education: parsedProfile.education?.length > 0 ? parsedProfile.education : [],
-          experience: parsedProfile.experience?.length > 0 ? parsedProfile.experience : (currentProfile.experience || []),
-          projects: parsedProfile.projects?.length > 0 ? parsedProfile.projects : (currentProfile.projects || []),
-        };
-        saveProfile(mergedProfile);
-        setProfile(mergedProfile);
-        if (parsedProfile.summary) {
-          setSummary(parsedProfile.summary);
-        }
-      }
-
+      // Chỉ lưu file và nội dung vào MasterCV để dùng đối chiếu CV (giữ nguyên Hồ sơ cá nhân của người dùng)
       setMasterCV(getMasterCV());
       setMode('uploaded');
       toast({
         title: 'Tải lên CV thành công!',
-        description: `Đã nạp file "${file.name}" giữ nguyên định dạng gốc vào hệ thống.`,
+        description: `Đã nạp file "${file.name}" vào hệ thống để dùng đối chiếu với việc làm.`,
       });
     } catch (err) {
       console.error('CV upload error:', err);

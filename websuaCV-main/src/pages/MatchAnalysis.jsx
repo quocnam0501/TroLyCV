@@ -21,7 +21,7 @@ import Navbar from '@/components/Navbar';
 import MatchResult from '@/components/cv/MatchResult';
 import DocumentPreview from '@/components/cv/DocumentPreview';
 import TailoredCVDocument from '@/components/cv/TailoredCVDocument';
-import { getCVText, addJobMatch, addCVVersion } from '@/utils/cvStorage';
+import { getCVText, getMasterCV, addJobMatch, addCVVersion } from '@/utils/cvStorage';
 import { matchCVToJob, tailorCV } from '@/utils/matchEngine';
 import { extractTextFromFile } from '@/utils/fileExtract';
 import { publicApiGet } from '@/lib/api';
@@ -99,11 +99,19 @@ export default function MatchAnalysis() {
     }
     loadJobs();
 
-    // Nạp dữ liệu CV từ Hồ sơ cá nhân (nếu có)
-    const profileText = getCVText();
-    if (profileText && profileText.trim().length > 30) {
-      setCvText(profileText);
-      setCvWordCount(profileText.trim().split(/\s+/).length);
+    // Nạp dữ liệu CV: Ưu tiên MasterCV đã tải lên, hoặc từ Hồ sơ cá nhân
+    const masterCV = getMasterCV();
+    if (masterCV?.type === 'uploaded' && masterCV?.content && masterCV.content.trim().length > 20) {
+      setCvText(masterCV.content);
+      setCvFileName(masterCV.fileName || 'CV_da_tai_len.pdf');
+      if (masterCV.fileDataUrl) setCvFileUrl(masterCV.fileDataUrl);
+      setCvWordCount(masterCV.content.trim().split(/\s+/).length);
+    } else {
+      const profileText = getCVText();
+      if (profileText && profileText.trim().length > 30) {
+        setCvText(profileText);
+        setCvWordCount(profileText.trim().split(/\s+/).length);
+      }
     }
   }, []);
 
