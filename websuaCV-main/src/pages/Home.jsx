@@ -108,9 +108,14 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
-          © 2026 Trợ lý CV — Từ kinh nghiệm sinh viên đến CV sẵn sàng ứng tuyển.
+      <footer className="py-10 border-t border-slate-100 bg-slate-50/50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="TrolyCV Logo" className="h-8 w-auto object-contain" />
+          </div>
+          <p className="text-sm text-slate-500 text-center sm:text-right">
+            © 2026 TrolyCV — Nền tảng phân tích & tối ưu CV thông minh cho sinh viên.
+          </p>
         </div>
       </footer>
     </div>

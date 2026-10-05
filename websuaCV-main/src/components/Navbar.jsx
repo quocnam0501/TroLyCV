@@ -19,10 +19,12 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center space-x-6">
-            <Link to="/" className="flex items-center space-x-2">
-              <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                Trợ lý CV
-              </span>
+            <Link to="/" className="flex items-center space-x-2.5 py-1 group">
+              <img
+                src="/logo.png"
+                alt="TrolyCV Logo"
+                className="h-9 sm:h-10 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+              />
             </Link>
 
             <div className="hidden md:flex md:items-center md:space-x-1">
