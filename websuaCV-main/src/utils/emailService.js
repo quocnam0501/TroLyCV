@@ -32,7 +32,7 @@ export function generateOtpCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Lưu mã OTP vào sessionStorage để đối chiếu xác thực
+// Lưu mã OTP vào sessionStorage & localStorage để đối chiếu xác thực giữa các tab
 export function savePendingOtp(email, code) {
   try {
     const key = `trolycv_otp_${email.toLowerCase().trim()}`;
@@ -41,9 +41,11 @@ export function savePendingOtp(email, code) {
       createdAt: Date.now(),
       expiresAt: Date.now() + 10 * 60 * 1000, // 10 phút
     };
-    sessionStorage.setItem(key, JSON.stringify(data));
+    const jsonStr = JSON.stringify(data);
+    sessionStorage.setItem(key, jsonStr);
+    localStorage.setItem(key, jsonStr);
   } catch (err) {
-    console.warn('Cannot save OTP to session:', err);
+    console.warn('Cannot save OTP to storage:', err);
   }
 }
 
@@ -51,11 +53,12 @@ export function savePendingOtp(email, code) {
 export function getPendingOtp(email) {
   try {
     const key = `trolycv_otp_${email.toLowerCase().trim()}`;
-    const raw = sessionStorage.getItem(key);
+    const raw = sessionStorage.getItem(key) || localStorage.getItem(key);
     if (!raw) return null;
     const data = JSON.parse(raw);
     if (Date.now() > data.expiresAt) {
       sessionStorage.removeItem(key);
+      localStorage.removeItem(key);
       return null;
     }
     return data.code;
@@ -126,4 +129,42 @@ export async function sendWelcomeEmail({ toEmail, fullName }) {
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * Gửi email đặt lại mật khẩu kèm mã OTP 6 chữ số thật qua SMTP
+ * @param {Object} params
+ * @param {string} params.toEmail - Địa chỉ email người nhận
+ * @param {string} params.otpCode - Mã xác nhận 6 chữ số
+ * @param {string} params.resetLink - Đường dẫn đặt lại mật khẩu trực tiếp
+ * @param {string} params.fullName - Tên người dùng (nếu có)
+ */
+export async function sendResetPasswordEmail({ toEmail, otpCode, resetLink = '', fullName = '' }) {
+  savePendingOtp(toEmail, otpCode);
+
+  try {
+    const res = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'reset_password',
+        to: toEmail.trim(),
+        fullName: fullName ? fullName.trim() : '',
+        otpCode: otpCode,
+        resetLink: resetLink,
+      }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('API sendResetPasswordEmail error:', err);
+    return {
+      success: true,
+      method: 'simulation',
+      code: otpCode,
+      message: 'Không kết nối được API send-email, chuyển về chế độ mô phỏng',
+    };
+  }
+}
+
 

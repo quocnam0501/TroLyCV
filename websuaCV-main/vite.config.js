@@ -286,6 +286,57 @@ function smtpEmailPlugin() {
               );
             }
 
+            // Trường hợp 3: Gửi email đặt lại mật khẩu
+            if (type === 'reset_password' || type === 'reset') {
+              const resetLink = body.resetLink || '';
+              await transporter.sendMail({
+                from: env.smtpFrom,
+                to: to,
+                subject: `[TroLyCV] Mã xác nhận đặt lại mật khẩu: ${otpCode}`,
+                html: `
+                  <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #1e293b;">
+                    <div style="text-align: center; margin-bottom: 24px;">
+                      <div style="display: inline-block; background: #fee2e2; color: #dc2626; padding: 8px 16px; border-radius: 9999px; font-size: 13px; font-weight: bold; margin-bottom: 12px;">
+                        Bảo mật tài khoản TroLyCV
+                      </div>
+                      <h2 style="color: #1e293b; margin: 0; font-size: 22px;">Yêu cầu Đặt lại Mật khẩu</h2>
+                      <p style="color: #64748b; font-size: 13px; margin-top: 6px;">Trợ Lý Tạo & Tối Ưu CV Sinh Viên Chuẩn ATS</p>
+                    </div>
+                    <p style="font-size: 15px; color: #334155; line-height: 1.6;">
+                      Xin chào <strong>${fullName || to}</strong>,
+                    </p>
+                    <p style="font-size: 14px; color: #334155; line-height: 1.6;">
+                      Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản <strong>${to}</strong>. Dưới đây là mã xác thực 6 chữ số của bạn:
+                    </p>
+                    <div style="text-align: center; margin: 24px 0;">
+                      <div style="display: inline-block; font-size: 34px; font-weight: bold; letter-spacing: 8px; color: #4338ca; background: #eef2ff; padding: 14px 32px; border-radius: 12px; border: 2px dashed #818cf8;">
+                        ${otpCode}
+                      </div>
+                    </div>
+                    ${resetLink ? `
+                    <div style="text-align: center; margin: 20px 0;">
+                      <a href="${resetLink}" style="display: inline-block; background-color: #4f46e5; color: #ffffff; padding: 12px 28px; border-radius: 10px; font-size: 14px; font-weight: bold; text-decoration: none;">
+                        Đặt lại mật khẩu trực tiếp →
+                      </a>
+                    </div>
+                    ` : ''}
+                    <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
+                      ⏰ Mã này có hiệu lực trong vòng <strong>10 phút</strong>. Nếu bạn không yêu cầu, vui lòng bỏ qua thư này.
+                    </p>
+                  </div>
+                `,
+              });
+
+              console.log(`\n\x1b[32m✔ [SMTP Server] Đã gửi mã đặt lại mật khẩu tới: ${to}\x1b[0m\n`);
+              return res.end(
+                JSON.stringify({
+                  success: true,
+                  method: 'smtp',
+                  message: `Đã gửi mã đặt lại mật khẩu thành công tới ${to}`,
+                })
+              );
+            }
+
             // Mặc định phản hồi thành công
             return res.end(JSON.stringify({ success: true }));
           } catch (err) {
@@ -298,6 +349,90 @@ function smtpEmailPlugin() {
                 message: `Lỗi kết nối gửi email qua SMTP: ${err.message}. Vui lòng kiểm tra lại SMTP_USER và Mật khẩu ứng dụng trong file .env hoặc .evn`,
               })
             );
+          }
+        });
+      });
+
+      // 3. Endpoint quản lý người dùng & đặt lại mật khẩu trong môi trường local dev
+      let localDevUsers = [
+        {
+          id: 'demo-user-001',
+          email: 'sinhvien.demo@trolycv.vn',
+          fullName: 'Nguyễn Văn An',
+          created_at: '2026-01-01T00:00:00.000Z',
+        },
+      ];
+
+      server.middlewares.use('/api/users', (req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+        const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+        const checkEmail = (url.searchParams.get('check') || '').trim().toLowerCase();
+        const queryEmail = (url.searchParams.get('email') || '').trim().toLowerCase();
+        const isList = url.searchParams.get('list') === '1';
+
+        if (req.method === 'GET' && checkEmail) {
+          const found = localDevUsers.some((u) => u.email.toLowerCase() === checkEmail);
+          return res.end(JSON.stringify({ exists: found }));
+        }
+
+        if (req.method === 'GET' && queryEmail) {
+          const found = localDevUsers.find((u) => u.email.toLowerCase() === queryEmail);
+          if (!found) {
+            res.statusCode = 404;
+            return res.end(JSON.stringify({ error: 'Không tìm thấy tài khoản' }));
+          }
+          return res.end(JSON.stringify(found));
+        }
+
+        if (req.method === 'GET' && isList) {
+          return res.end(JSON.stringify({ total: localDevUsers.length, users: localDevUsers }));
+        }
+
+        let body = '';
+        req.on('data', (chunk) => {
+          body += chunk;
+        });
+        req.on('end', () => {
+          try {
+            const data = JSON.parse(body || '{}');
+            if (req.method === 'POST') {
+              const { email, password, fullName } = data;
+              if (!email) {
+                res.statusCode = 400;
+                return res.end(JSON.stringify({ error: 'Thiếu email' }));
+              }
+              const clean = email.trim().toLowerCase();
+              const existing = localDevUsers.find((u) => u.email.toLowerCase() === clean);
+              if (existing) {
+                res.statusCode = 409;
+                return res.end(JSON.stringify({ error: 'Email đã tồn tại' }));
+              }
+              const newUser = {
+                id: `user_${Date.now()}`,
+                email: clean,
+                fullName: fullName || clean.split('@')[0],
+                password: password || '123456',
+                created_at: new Date().toISOString(),
+              };
+              localDevUsers.push(newUser);
+              res.statusCode = 201;
+              return res.end(JSON.stringify({ success: true, user: newUser }));
+            }
+
+            if (req.method === 'PATCH' || req.method === 'PUT') {
+              const { email, password } = data;
+              const clean = (email || '').trim().toLowerCase();
+              const u = localDevUsers.find((u) => u.email.toLowerCase() === clean);
+              if (u) {
+                u.password = password;
+              }
+              return res.end(JSON.stringify({ success: true, message: 'Cập nhật mật khẩu thành công' }));
+            }
+
+            return res.end(JSON.stringify({ status: 'ok' }));
+          } catch (e) {
+            res.statusCode = 500;
+            return res.end(JSON.stringify({ error: e.message }));
           }
         });
       });

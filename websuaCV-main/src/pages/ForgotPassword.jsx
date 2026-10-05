@@ -1,75 +1,125 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { supabase, isDemoMode } from "@/lib/supabase";
-
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, ArrowLeft, Loader2, ArrowRight } from "lucide-react";
+import { Mail, ArrowLeft, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import { generateOtpCode, sendResetPasswordEmail } from "@/utils/emailService";
+import { toast } from "@/components/ui/use-toast";
 
 export default function ForgotPassword() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [resetCode, setResetCode] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const origin = window.location.origin.includes('localhost')
-        ? window.location.origin.replace(/:([0-9]+)/, ':5180')
-        : window.location.origin;
+    if (!email.trim()) return;
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${origin}/reset-password`,
+    setLoading(true);
+    const code = generateOtpCode();
+    setResetCode(code);
+
+    const origin = window.location.origin;
+    const resetLink = `${origin}/reset-password?email=${encodeURIComponent(email.trim())}&code=${code}`;
+
+    try {
+      // 1. Gửi email thật chứa mã xác nhận 6 số qua SMTP
+      const res = await sendResetPasswordEmail({
+        toEmail: email.trim(),
+        otpCode: code,
+        resetLink,
       });
 
-      if (error) {
-        console.error("Reset password error:", error);
+      // 2. Thử kích hoạt qua Supabase Auth nếu có
+      try {
+        await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: resetLink,
+        });
+      } catch {}
+
+      if (res?.method === 'smtp') {
+        toast({
+          title: "Đã gửi email thành công!",
+          description: `Mã xác nhận 6 chữ số đã được gửi tới ${email}. Vui lòng kiểm tra hộp thư!`,
+        });
+      } else {
+        toast({
+          title: "Đã tạo mã xác nhận",
+          description: `Mã xác nhận của bạn là: ${code}`,
+        });
       }
+
+      setSent(true);
     } catch (err) {
       console.error("Reset password failed:", err);
+      toast({
+        variant: "destructive",
+        title: "Lỗi gửi email",
+        description: err.message || "Không thể gửi email đặt lại mật khẩu. Vui lòng thử lại.",
+      });
     } finally {
       setLoading(false);
-      setSent(true);
     }
   };
 
   return (
     <AuthLayout
       icon={Mail}
-      title="Reset password"
-      subtitle="We'll send you a link to reset it"
+      title="Quên mật khẩu"
+      subtitle="Chúng tôi sẽ gửi mã xác nhận về email của bạn"
       footer={
-        <Link to="/login" className="text-primary font-medium hover:underline">
-          <ArrowLeft className="w-3 h-3 inline mr-1" />Back to log in
+        <Link to="/login" className="text-primary font-medium hover:underline inline-flex items-center gap-1">
+          <ArrowLeft className="w-3.5 h-3.5" /> Quay lại đăng nhập
         </Link>
       }
     >
       {sent ? (
-        <div className="space-y-4">
-          <p className="text-sm text-foreground text-center">
-            Nếu tài khoản tồn tại với email này, liên kết đặt lại mật khẩu đã được gửi đến hộp thư của bạn.
-          </p>
-          {isDemoMode && (
-            <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-200 text-center space-y-3">
-              <p className="text-xs text-indigo-700">
-                💡 <strong>Chế độ Demo:</strong> Bạn có thể kiểm tra trực tiếp giao diện đặt lại mật khẩu mới bên dưới:
-              </p>
-              <Link
-                to="/reset-password?demo=true"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700"
-              >
-                Mở trang Đặt lại mật khẩu ngay <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          )}
+        <div className="space-y-5 text-center">
+          <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
+
+          <div>
+            <h3 className="font-bold text-slate-900 text-base mb-1.5">
+              Đã gửi mã xác nhận!
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Mã xác nhận 6 chữ số và liên kết đặt lại mật khẩu đã được gửi đến hộp thư:
+              <br />
+              <strong className="text-slate-800 font-mono text-sm">{email}</strong>
+            </p>
+            <p className="text-[11px] text-slate-400 mt-2">
+              💡 Lưu ý: Vui lòng kiểm tra cả mục <strong>Thư rác / Spam</strong> nếu chưa thấy trong Hộp thư đến.
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            onClick={() => navigate(`/reset-password?email=${encodeURIComponent(email)}&code=${resetCode}`)}
+            className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md shadow-indigo-600/20"
+          >
+            Nhập mã đặt lại mật khẩu ngay <ArrowRight className="w-4 h-4 ml-1.5" />
+          </Button>
+
+          <div className="pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setSent(false)}
+              className="text-xs text-slate-400 hover:text-indigo-600 transition-colors"
+            >
+              ← Thử lại với email khác
+            </button>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email" className="text-sm font-medium">Địa chỉ Email của bạn</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
               <Input
@@ -77,22 +127,22 @@ export default function ForgotPassword() {
                 type="email"
                 autoComplete="email"
                 autoFocus
-                placeholder="you@example.com"
+                placeholder="tenban@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-12"
+                className="pl-10 h-11 text-sm"
                 required
               />
             </div>
           </div>
-          <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+          <Button type="submit" className="w-full h-11 font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20" disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sending...
+                Đang gửi mã...
               </>
             ) : (
-              "Send reset link"
+              "Gửi mã đặt lại mật khẩu"
             )}
           </Button>
         </form>

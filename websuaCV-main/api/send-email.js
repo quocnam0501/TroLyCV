@@ -126,6 +126,58 @@ export default async function handler(req, res) {
       return;
     }
 
+    if (type === 'reset_password' || type === 'reset') {
+      const resetLink = body.resetLink || '';
+      await transporter.sendMail({
+        from: smtpFrom,
+        to: to,
+        subject: `[TroLyCV] Mã xác nhận đặt lại mật khẩu: ${otpCode}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff; color: #1e293b;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <div style="display: inline-block; background: #fee2e2; color: #dc2626; padding: 8px 16px; border-radius: 9999px; font-size: 13px; font-weight: bold; margin-bottom: 12px;">
+                Bảo mật tài khoản TroLyCV
+              </div>
+              <h2 style="color: #1e293b; margin: 0; font-size: 22px;">Yêu cầu Đặt lại Mật khẩu</h2>
+              <p style="color: #64748b; font-size: 13px; margin-top: 6px;">Trợ Lý Tạo & Tối Ưu CV Sinh Viên Chuẩn ATS</p>
+            </div>
+            <p style="font-size: 15px; color: #334155; line-height: 1.6;">
+              Xin chào <strong>${fullName || to}</strong>,
+            </p>
+            <p style="font-size: 14px; color: #334155; line-height: 1.6;">
+              Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản <strong>${to}</strong>. Dưới đây là mã xác thực 6 chữ số của bạn:
+            </p>
+            <div style="text-align: center; margin: 24px 0;">
+              <div style="display: inline-block; font-size: 34px; font-weight: bold; letter-spacing: 8px; color: #4338ca; background: #eef2ff; padding: 14px 32px; border-radius: 12px; border: 2px dashed #818cf8;">
+                ${otpCode}
+              </div>
+            </div>
+            ${resetLink ? `
+            <div style="text-align: center; margin: 20px 0;">
+              <a href="${resetLink}" style="display: inline-block; background-color: #4f46e5; color: #ffffff; padding: 12px 28px; border-radius: 10px; font-size: 14px; font-weight: bold; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
+                Đặt lại mật khẩu trực tiếp →
+              </a>
+            </div>
+            ` : ''}
+            <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
+              ⏰ Mã xác nhận và liên kết này có hiệu lực trong vòng <strong>10 phút</strong>. Nếu bạn không yêu cầu đặt lại mật khẩu, bạn có thể an tâm bỏ qua email này.
+            </p>
+            <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
+            <p style="color: #94a3b8; font-size: 12px; text-align: center; margin: 0;">
+              TroLyCV — Hệ thống hỗ trợ ứng tuyển và tối ưu CV thông minh cho sinh viên.
+            </p>
+          </div>
+        `,
+      });
+
+      res.status(200).json({
+        success: true,
+        method: 'smtp',
+        message: `Đã gửi mã đặt lại mật khẩu thành công tới ${to}`,
+      });
+      return;
+    }
+
     if (type === 'welcome') {
       await transporter.sendMail({
         from: smtpFrom,

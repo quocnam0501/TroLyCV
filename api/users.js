@@ -119,5 +119,24 @@ export default async function handler(req, res) {
     }
   }
 
+  // 5. Endpoint cập nhật mật khẩu khi Reset Password: PUT / PATCH /api/users
+  if (req.method === 'PATCH' || req.method === 'PUT') {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+      const { email, password } = body;
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Thiếu email hoặc mật khẩu mới' });
+      }
+      const cleanEmail = email.trim().toLowerCase();
+      const user = globalUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (user) {
+        user.password = password;
+      }
+      return res.status(200).json({ success: true, message: 'Cập nhật mật khẩu thành công' });
+    } catch (err) {
+      return res.status(500).json({ error: 'Lỗi cập nhật mật khẩu' });
+    }
+  }
+
   return res.status(200).json({ status: 'ok' });
 }
