@@ -34,22 +34,32 @@ export default function CVBuilder() {
   const [uploadError, setUploadError] = useState('');
 
   useEffect(() => {
-    const p = getProfile();
-    setProfile(p);
-    const cv = getMasterCV();
-    setMasterCV(cv);
-    if (searchParams.get('mode') === 'upload') setMode('uploaded');
-    if (cv?.type === 'uploaded') {
-      setMode('uploaded');
-      setUploadedContent(cv.content || '');
-      setUploadedFileName(cv.fileName || 'CV_da_tai_len.pdf');
-      if (cv.fileDataUrl) {
-        setUploadedFileUrl(cv.fileDataUrl);
+    const refreshData = () => {
+      const p = getProfile();
+      setProfile(p);
+      const cv = getMasterCV();
+      setMasterCV(cv);
+      if (searchParams.get('mode') === 'upload') setMode('uploaded');
+      if (cv?.type === 'uploaded') {
+        setMode('uploaded');
+        setUploadedContent(cv.content || '');
+        setUploadedFileName(cv.fileName || 'CV_da_tai_len.pdf');
+        if (cv.fileDataUrl) {
+          setUploadedFileUrl(cv.fileDataUrl);
+        }
+      } else {
+        setSummary(cv?.summary || '');
+        setTemplate(cv?.template || 'modern');
       }
-    } else {
-      setSummary(cv?.summary || '');
-      setTemplate(cv?.template || 'modern');
-    }
+    };
+
+    refreshData();
+    window.addEventListener('profileUpdated', refreshData);
+    window.addEventListener('storage', refreshData);
+    return () => {
+      window.removeEventListener('profileUpdated', refreshData);
+      window.removeEventListener('storage', refreshData);
+    };
   }, [searchParams]);
 
   const handleSaveSummary = () => {

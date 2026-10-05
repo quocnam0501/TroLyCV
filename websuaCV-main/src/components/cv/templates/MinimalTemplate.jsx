@@ -1,7 +1,8 @@
 import React from 'react';
 
 export default function MinimalTemplate({ profile, masterCV, photoUrl }) {
-  const p = profile.personal || {};
+  const p = profile?.personal || {};
+  const effectivePhotoUrl = photoUrl || p.photoUrl || '';
   const summary = masterCV?.summary || '';
 
   const Section = ({ title, children }) => (
@@ -33,9 +34,9 @@ export default function MinimalTemplate({ profile, masterCV, photoUrl }) {
               </div>
             )}
           </div>
-          {photoUrl && (
-            <div className="w-24 h-24 rounded-full overflow-hidden shrink-0 ml-6">
-              <img src={photoUrl} alt={p.fullName} className="w-full h-full object-cover" />
+          {effectivePhotoUrl && (
+            <div className="w-24 h-24 rounded-full overflow-hidden shrink-0 ml-6 ring-2 ring-slate-200 shadow-md">
+              <img src={effectivePhotoUrl} alt={p.fullName || 'Ảnh đại diện'} className="w-full h-full object-cover" />
             </div>
           )}
         </div>

@@ -1,7 +1,8 @@
 import React from 'react';
 
 export default function ProfessionalTemplate({ profile, masterCV, photoUrl }) {
-  const p = profile.personal || {};
+  const p = profile?.personal || {};
+  const effectivePhotoUrl = photoUrl || p.photoUrl || '';
   const summary = masterCV?.summary || '';
 
   const Section = ({ title, children }) => (
@@ -29,9 +30,9 @@ export default function ProfessionalTemplate({ profile, masterCV, photoUrl }) {
             </div>
           )}
         </div>
-        {photoUrl && (
+        {effectivePhotoUrl && (
           <div className="w-24 h-24 rounded-lg overflow-hidden shrink-0 ml-6 border-2 border-slate-600 shadow-lg">
-            <img src={photoUrl} alt={p.fullName} className="w-full h-full object-cover" />
+            <img src={effectivePhotoUrl} alt={p.fullName || 'Ảnh đại diện'} className="w-full h-full object-cover" />
           </div>
         )}
       </div>

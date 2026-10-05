@@ -13,9 +13,6 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
               className="h-11 w-auto mx-auto object-contain transition-transform duration-200 group-hover:scale-105"
             />
           </Link>
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 text-primary mb-3">
-            <Icon className="w-6 h-6 text-primary" aria-hidden="true" />
-          </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{title}</h1>
           {subtitle && <p className="text-muted-foreground text-sm mt-1.5">{subtitle}</p>}
         </div>

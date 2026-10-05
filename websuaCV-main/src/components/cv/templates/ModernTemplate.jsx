@@ -1,9 +1,10 @@
 import React from 'react';
 
 export default function ModernTemplate({ profile, masterCV, photoUrl }) {
-  const p = profile.personal || {};
+  const p = profile?.personal || {};
+  const effectivePhotoUrl = photoUrl || p.photoUrl || '';
   const summary = masterCV?.summary || '';
-  const subtitle = [profile.education?.[0]?.major, profile.experience?.[0]?.role].filter(Boolean).join(' · ');
+  const subtitle = [profile?.education?.[0]?.major, profile?.experience?.[0]?.role].filter(Boolean).join(' · ');
 
   const SideSection = ({ title, children }) => (
     <div className="mb-6">
@@ -26,9 +27,11 @@ export default function ModernTemplate({ profile, masterCV, photoUrl }) {
     <div className="bg-white flex" style={{ width: '794px', minHeight: '1123px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* Sidebar */}
       <div className="w-[270px] bg-gradient-to-b from-indigo-700 to-indigo-900 text-white p-7">
-        {photoUrl && (
-          <div className="w-32 h-32 rounded-full overflow-hidden mx-auto mb-6 ring-4 ring-white/20 shadow-lg">
-            <img src={photoUrl} alt={p.fullName} className="w-full h-full object-cover" />
+        {effectivePhotoUrl && (
+          <div className="flex justify-center items-center mx-auto mb-6">
+            <div className="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white/20 shadow-xl border-2 border-white/30 flex items-center justify-center bg-white/10">
+              <img src={effectivePhotoUrl} alt={p.fullName || 'Ảnh đại diện'} className="w-full h-full object-cover" />
+            </div>
           </div>
         )}
 

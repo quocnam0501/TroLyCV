@@ -33,7 +33,9 @@ export default function CVPreview({ profile, masterCV, photoUrl, template = 'mod
     if (templateRef.current) {
       setWrapperHeight(templateRef.current.offsetHeight * scale);
     }
-  }, [scale, template, profile, masterCV, photoUrl]);
+  }, [scale, template, profile, masterCV, photoUrl, profile?.personal?.photoUrl]);
+
+  const effectivePhoto = photoUrl || profile?.personal?.photoUrl || '';
 
   return (
     <div ref={containerRef} style={{ height: wrapperHeight }} className="overflow-hidden">
@@ -42,7 +44,7 @@ export default function CVPreview({ profile, masterCV, photoUrl, template = 'mod
         data-cv-template
         style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: '794px' }}
       >
-        <TemplateComponent profile={profile} masterCV={masterCV} photoUrl={photoUrl} />
+        <TemplateComponent profile={profile} masterCV={masterCV} photoUrl={effectivePhoto} />
       </div>
     </div>
   );

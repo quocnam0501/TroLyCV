@@ -89,13 +89,21 @@ export default function Profile() {
   const updatePersonal = (key, value) => {
     setProfile((prev) => {
       const base = prev || EMPTY;
-      return {
+      const updated = {
         ...base,
         personal: {
           ...base.personal,
           [key]: value,
         },
       };
+      // Tự động lưu ngay khi cập nhật ảnh đại diện để đồng bộ tức thì sang Tạo CV
+      if (key === 'photoUrl') {
+        saveLocalProfile(updated);
+        try {
+          window.dispatchEvent(new Event('profileUpdated'));
+        } catch {}
+      }
+      return updated;
     });
     if (errors[key]) {
       setErrors((prev) => ({ ...prev, [key]: null }));
