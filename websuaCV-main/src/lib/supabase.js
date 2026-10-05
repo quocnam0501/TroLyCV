@@ -338,4 +338,10 @@ export const supabase = isDemoMode
       },
     });
 
-export { isDemoMode };
+export {
+  isDemoMode,
+  getStoredDemoUser,
+  setStoredDemoUser,
+  getMockUsers,
+  saveMockUser,
+};

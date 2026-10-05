@@ -396,6 +396,25 @@ function smtpEmailPlugin() {
           try {
             const data = JSON.parse(body || '{}');
             if (req.method === 'POST') {
+              if (data.action === 'verify') {
+                const clean = (data.email || '').trim().toLowerCase();
+                const u = localDevUsers.find((x) => x.email.toLowerCase() === clean);
+                if (u && u.password === data.password) {
+                  return res.end(
+                    JSON.stringify({
+                      valid: true,
+                      user: {
+                        id: u.id,
+                        email: u.email,
+                        fullName: u.fullName,
+                        created_at: u.created_at,
+                      },
+                    })
+                  );
+                }
+                return res.end(JSON.stringify({ valid: false }));
+              }
+
               const { email, password, fullName } = data;
               if (!email) {
                 res.statusCode = 400;

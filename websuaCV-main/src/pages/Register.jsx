@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
-import { supabase } from "@/lib/supabase";
+import { supabase, saveMockUser } from "@/lib/supabase";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -155,6 +155,24 @@ export default function Register() {
       } catch (dbErr) {
         console.warn("Supabase registered_users note:", dbErr);
       }
+
+      // Lưu trữ tài khoản vào danh sách hợp lệ để đăng nhập mượt mà sau kích hoạt
+      const newUser = {
+        id: data.user.id || `user_${Date.now()}`,
+        email: email.trim().toLowerCase(),
+        password: password,
+        fullName: fullName.trim(),
+        created_at: new Date().toISOString(),
+      };
+      saveMockUser(newUser);
+
+      try {
+        fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newUser),
+        }).catch(() => {});
+      } catch {}
 
       // Nếu đã có session ngay (tự động đăng nhập)
       if (data.session) {

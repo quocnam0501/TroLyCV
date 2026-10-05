@@ -77,6 +77,25 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+
+      // Xác thực đăng nhập qua máy chủ
+      if (body.action === 'verify') {
+        const cleanEmail = (body.email || '').trim().toLowerCase();
+        const user = globalUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+        if (user && user.password === body.password) {
+          return res.status(200).json({
+            valid: true,
+            user: {
+              id: user.id,
+              email: user.email,
+              fullName: user.fullName,
+              created_at: user.created_at,
+            },
+          });
+        }
+        return res.status(200).json({ valid: false });
+      }
+
       const { email, password, fullName } = body;
 
       if (!email) {
